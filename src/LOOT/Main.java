@@ -86,7 +86,9 @@ import org.osbot.rs07.api.Players;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.model.Player;
 import org.osbot.rs07.event.WebWalkEvent;
+import org.osbot.rs07.api.map.constants.Banks;
 import org.osbot.rs07.script.Script;
+import org.osbot.rs07.api.model.*;
 import org.osbot.rs07.script.ScriptManifest;
 import org.osbot.rs07.utility.ConditionalSleep;
 
@@ -110,58 +112,88 @@ public class Main extends Script {
     };
 
     private void bank() throws InterruptedException {
+        super.log("At beginning of bank loop. currentState: " + this.currentState);
         /* state 1: revived from death */
-        if(this.currentState == State.REVIVED) {
+        if (this.currentState == State.REVIVED) {
+            super.log("Executing Revived");
+
             // if with walking distance of bank, walk to bank
-            if ((!bankingArea.contains(myPosition())) && (!myPlayer().isMoving())) {
-                if (super.getWalking().walk(bankingArea)) {
+            boolean inBankingArea = !bankingArea.contains(myPosition());
+            super.log("inBankingArea: " + inBankingArea);
+            if (inBankingArea) {
+                boolean walkingTowardsBank = super.getWalking().walk(bankingArea);
+                super.log("walkingTowardsBank: " + walkingTowardsBank);
+                if (walkingTowardsBank) {
                     this.currentState = State.TRAVELINGTOBANKCHEST;
                 }
-            }
-        } else if(this.currentState == State.TRAVELINGTOBANKCHEST) {
-            this.whileTravelingToBank.sleep();
-
-            if(bankingArea.contains(myPosition())) {
+            } else {
                 this.currentState = State.ATBANKCHEST;
             }
-        } else if(this.currentState == State.ATBANKCHEST) {
+        } else if (this.currentState == State.TRAVELINGTOBANKCHEST) {
+            this.whileTravelingToBank.sleep();
+
+            if (bankingArea.contains(myPosition())) {
+                this.currentState = State.ATBANKCHEST;
+            }
+        } else if (this.currentState == State.ATBANKCHEST) {
             if (!getBank().isOpen()) {
-                if (getBank().open()) {
+                boolean bankOpenSucceeded = getBank().open();
+                if (bankOpenSucceeded) {
                     this.currentState = State.ATBANKPROMPT;
-                    //doesnt meet reqs
                 }
             }
-        }
+        } else if (this.currentState == State.ATBANKPROMPT) {
+            //check if the bank contains teleport
+            if (getBank().contains(varrockTeleport)) {
+                boolean withdrawSucceeded = getBank().withdraw(varrockTeleport, 1);
+                if (withdrawSucceeded) {
+                    boolean bankClosed = getBank().close();
 
-        /* END STATE 2 */
-
-
-        if (!inventory.contains(new String[]{varrockTeleport}))
-            if (getBank().contains(new String[]{varrockTeleport})) {
-                getBank().withdraw(varrockTeleport, 1);
-            }
-
-
-        if (inventory.contains(new String[]{varrockTeleport})) {
-            getBank().close();
-            inventory.getItem(varrockTeleport).interact("break");
-            if (!inventory.contains(new String[]{varrockTeleport})) {
-
-
-                if (!lootingArea.contains(myPlayer())) {
-                    if (getSettings().getRunEnergy() >= 10) {
-                        getSettings().setRunning(true);
+                    if (bankClosed) {
+                        this.currentState = State.HASTELEPORT;
                     }
-
-
-                    getWalking().webWalk(new Area[]{lootingArea});
-                } else {
-                    stop();
                 }
-
             }
+        } else if (this.currentState == State.HASTELEPORT) {
+            //check inventory for teleport
+            if (inventory.contains(varrockTeleport)) {
+                Item teleport = inventory.getItem(varrockTeleport);
+                if (teleport == null) {
+                    // sad face
+                    this.currentState = State.REVIVED;
+                } else {
+                    if (teleport.interact("break")) {
+                        this.currentState = State.ATVARROCK;
+
+
+                    }
+                }
+            }
+        } else if (this.currentState == State.ATVARROCK) {
+            boolean atGrandeExchangio = Banks.GRAND_EXCHANGE.contains(myPosition());
+            super.log("atGrandeExchangio: " + atGrandeExchangio);
+            if (!atGrandeExchangio) {
+                boolean walkingTowardsGE = super.getWalking().walk(Banks.GRAND_EXCHANGE.getRandomPosition());
+                super.log("walkingTowardsGE: " + walkingTowardsGE);
+                if (walkingTowardsGE) {
+                    this.currentState = State.TRAVELINGTOGRANDEXCHANGE;
+                }
+            }
+        } else if (this.currentState == State.TRAVELINGTOGRANDEXCHANGE) {
+            if (!lootingArea.contains(myPlayer())) {
+                if (getSettings().getRunEnergy() >= 10) {
+                    getSettings().setRunning(true);
+                }
+            } else {
+                this.currentState = State.ATGRANDEXCHANGE;
+            }
+        } else if (this.currentState == State.ATGRANDEXCHANGE){
+            super.log("I'm herrreeeeee!!!!");
+        } else {
+            super.log("else????? currentState: " + this.currentState);
         }
     }
+
 
 
 
@@ -182,8 +214,8 @@ public class Main extends Script {
     @Override
     public int onLoop () {
         try {
-
             if (myPlayer().isVisible()) {
+                super.log("in is visible block");
                 this.bank();
             }
         } catch(InterruptedException e) {
@@ -191,7 +223,7 @@ public class Main extends Script {
         }
 
 
-        return random(100, 300);
+        return random(500, 800);
     }
 
 
