@@ -15,4 +15,3 @@ public enum State {
     WALKINGTOPLAYERDEATH,
     WAITINGFORLOOT
 }
-
