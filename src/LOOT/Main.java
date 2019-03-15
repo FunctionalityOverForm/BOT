@@ -59,7 +59,7 @@ switch state "LOOT"
 6. if value > 30k of inventory go to bank
 
 
- GrandExchange parser = new GrandExchange();
+
 
 
         try {
@@ -77,13 +77,9 @@ switch state "LOOT"
 
  */
 
-
-
-
-
-import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Players;
 import org.osbot.rs07.api.map.Area;
+import org.osbot.rs07.api.map.Position;
 import org.osbot.rs07.api.model.Player;
 import org.osbot.rs07.event.WebWalkEvent;
 import org.osbot.rs07.api.map.constants.Banks;
@@ -93,17 +89,18 @@ import org.osbot.rs07.script.ScriptManifest;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.awt.*;
-
-
-
+import java.io.IOException;
+import java.util.Random;
 
 @ScriptManifest(name = "GE LOOTER", author = "Pat and Mac", version = 1.0, info = "Goes to GE and Loots from Dead players", logo = "")
 public class Main extends Script {
     private State currentState = State.REVIVED;
-
+    public static Area getLocationArea = Banks.GRAND_EXCHANGE;
     private final Area bankingArea = new Area(3225, 3212, 3218, 3225);
     private final Area lootingArea = new Area(3162, 3486, 3167, 3481);
+    private Position DrawTile = new Position(1, 2, 3);
     private final String varrockTeleport = "Varrock teleport";
+    private int PriceID;
     private ConditionalSleep whileTravelingToBank = new ConditionalSleep((int) (Math.random() * 1000.0D + 2000.0D)) {
         @Override
         public boolean condition() throws InterruptedException {
@@ -164,8 +161,6 @@ public class Main extends Script {
                 } else {
                     if (teleport.interact("break")) {
                         this.currentState = State.ATVARROCK;
-
-
                     }
                 }
             }
@@ -173,65 +168,134 @@ public class Main extends Script {
             boolean atGrandeExchangio = Banks.GRAND_EXCHANGE.contains(myPosition());
             super.log("atGrandeExchangio: " + atGrandeExchangio);
             if (!atGrandeExchangio) {
-                boolean walkingTowardsGE = super.getWalking().walk(Banks.GRAND_EXCHANGE.getRandomPosition());
+                boolean walkingTowardsGE = getWalking().webWalk(new Position[]{getLocationArea.getRandomPosition()});
                 super.log("walkingTowardsGE: " + walkingTowardsGE);
                 if (walkingTowardsGE) {
                     this.currentState = State.TRAVELINGTOGRANDEXCHANGE;
                 }
             }
         } else if (this.currentState == State.TRAVELINGTOGRANDEXCHANGE) {
-            if (!lootingArea.contains(myPlayer())) {
-                if (getSettings().getRunEnergy() >= 10) {
-                    getSettings().setRunning(true);
-                }
-            } else {
-                this.currentState = State.ATGRANDEXCHANGE;
+
+            if (getSettings().getRunEnergy() >= 10) {
+                getSettings().setRunning(true);
+                this.currentState = State.WAITFORPLAYERDEATH;
             }
-        } else if (this.currentState == State.ATGRANDEXCHANGE){
-            super.log("I'm herrreeeeee!!!!");
-        } else {
-            super.log("else????? currentState: " + this.currentState);
+        }
+
+
+        if (this.currentState == State.WAITFORPLAYERDEATH) {
+            int i = 0;
+            while (i < 1) {
+                //Random
+                Random rand = new Random();
+                //check to see if players exist
+                if (getPlayers().getAll() != null) {
+                    //get a list of all players because there are some
+                    java.util.List<Player> p = getPlayers().getAll();
+                    //get player size and select random one
+                    int randomNum = rand.nextInt(((p.size() - 1) - 0) + 1) + 0;
+                    //select the player
+                    Player randomPlayer = p.get(randomNum);
+                    //filter players to meet lootable
+                    if (randomPlayer != null && randomPlayer.isAnimating() && randomPlayer.isHitBarVisible() && randomPlayer.isOnScreen()) {
+                        //get player health
+                        int playerhealth = randomPlayer.getHealthPercent();
+                        //ID dead player who just died and get their name, coordinates, and health.
+                        if (playerhealth == 0) {
+                            String name = randomPlayer.getName();
+                            String loc = randomPlayer.getPosition().toString();
+                            //log all as a test
+                            log(name + loc + playerhealth);
+                            i = 5;
+                            this.currentState = State.WalkTOPLAYERDEATH;
+
+                        }
+                    } else if (this.currentState == State.WalkTOPLAYERDEATH) {
+
+                        getWalking().walk(new Position(randomPlayer.getPosition()));
+                        DrawTile = randomPlayer.getPosition();
+                    }
+                }
+            }
         }
     }
-
-
-
 
     @Override
     public void onStart() {
 
     }
 
-
-
     @Override
     public void onExit () {
 
-
     }
 
-
+    public java.util.List<GroundItem> getAll;
+    public String[] temp;
     @Override
     public int onLoop () {
+        //Random
+        Random rand = new Random();
+        //check to see if players exist
+        if (getPlayers().getAll() != null) {
+            //get a list of all players because there are some
+            java.util.List<Player> p = getPlayers().getAll();
+            //get player size and select random one
+            int randomNum = rand.nextInt(((p.size() - 1) - 0) + 1) + 0;
+            //select the player
+            Player randomPlayer = p.get(randomNum);
+            //filter players to meet lootable
+            if (randomPlayer != null && randomPlayer.isAnimating() && randomPlayer.isHitBarVisible() && randomPlayer.isOnScreen()) {
+                //get player health
+                int playerhealth = randomPlayer.getHealthPercent();
+                //ID dead player who just died and get their name, coordinates, and health.
+                if (playerhealth == 0) {
+                    String name = randomPlayer.getName();
+                    String loc = randomPlayer.getPosition().toString();
+                    //log all as a test
+                    log(name + loc + playerhealth);
+
+                    getWalking().walk(new Position(randomPlayer.getPosition()));
+                    DrawTile = randomPlayer.getPosition();
+                    try {
+                        // to sleep 10 seconds
+                        Thread.sleep(58000);
+                    } catch (InterruptedException e) {
+                        // recommended because catching InterruptedException clears interrupt flag
+                        Thread.currentThread().interrupt();
+                        // you probably want to quit if the thread is interrupted
+                    }
+
+                    // NULL POINTER
+                    temp = getAll.toString().split("/n");
+                    for (int i = 0; i < temp.length; i++) {
+                        if (groundItems.closest(temp[i]) != null) {
+                            GroundItem loot = groundItems.closest(temp[i]);
+                            loot.interact("Take");
+                        }
+                    }
+                }
+            }
+        }
+
+        /*
         try {
-            if (myPlayer().isVisible()) {
-                super.log("in is visible block");
+           if (myPlayer().isVisible()) {
+               super.log("in is visible block");
                 this.bank();
             }
         } catch(InterruptedException e) {
             log("got interrupted!");
         }
+        */
 
-
-        return random(500, 800);
+        return random(10, 30);
     }
-
 
     @Override
     public void onPaint (Graphics2D g){
-
-
+        Polygon p = DrawTile.getPolygon(bot);
+        g.drawPolygon(p);
     }
 }
-
 
