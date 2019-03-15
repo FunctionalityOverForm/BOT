@@ -127,6 +127,7 @@ public class Main extends Script {
                 this.currentState = State.ATBANKCHEST;
             }
         } else if (this.currentState == State.TRAVELINGTOBANKCHEST) {
+            super.log("entered Traveling To Bank Chest");
             this.whileTravelingToBank.sleep();
 
             if (bankingArea.contains(myPosition())) {
@@ -175,49 +176,48 @@ public class Main extends Script {
                 }
             }
         } else if (this.currentState == State.TRAVELINGTOGRANDEXCHANGE) {
-
+            super.log("entered Traveling to GE Block");
             if (getSettings().getRunEnergy() >= 10) {
                 getSettings().setRunning(true);
-                this.currentState = State.WAITFORPLAYERDEATH;
             }
-        }
 
-
-        if (this.currentState == State.WAITFORPLAYERDEATH) {
-            int i = 0;
-            while (i < 1) {
-                //Random
-                Random rand = new Random();
-                //check to see if players exist
-                if (getPlayers().getAll() != null) {
-                    //get a list of all players because there are some
-                    java.util.List<Player> p = getPlayers().getAll();
-                    //get player size and select random one
-                    int randomNum = rand.nextInt(((p.size() - 1) - 0) + 1) + 0;
-                    //select the player
-                    Player randomPlayer = p.get(randomNum);
+            boolean atGrandeExchangio = Banks.GRAND_EXCHANGE.contains(myPosition());
+            super.log("atGrandeExchangio2: " + atGrandeExchangio);
+            if(atGrandeExchangio){
+              this.currentState = State.WAITFORPLAYERDEATH;
+            }
+        } else if (this.currentState == State.WAITFORPLAYERDEATH) {
+            super.log("entered Wait for Player death block");
+            //get a list of all players because there are some
+            java.util.List<Player> players = getPlayers().getAll();
+            //check to see if players exist
+            if (players != null) {
+                for(Player player : players) {
+                    Thread.sleep(100);
+                    super.log("examining player: " + player.getName());
                     //filter players to meet lootable
-                    if (randomPlayer != null && randomPlayer.isAnimating() && randomPlayer.isHitBarVisible() && randomPlayer.isOnScreen()) {
+                    if (player != null && player.isAnimating()
+                            && player.isHitBarVisible() && player.isOnScreen()) {
                         //get player health
-                        int playerhealth = randomPlayer.getHealthPercent();
+                        int playerhealth = player.getHealthPercent();
                         //ID dead player who just died and get their name, coordinates, and health.
                         if (playerhealth == 0) {
-                            String name = randomPlayer.getName();
-                            String loc = randomPlayer.getPosition().toString();
+                            String name = player.getName();
+                            String loc = player.getPosition().toString();
                             //log all as a test
-                            log(name + loc + playerhealth);
-                            i = 5;
-                            this.currentState = State.WalkTOPLAYERDEATH;
-
+                            super.log("found dead player" + name + loc + playerhealth);
+                            getWalking().walk(new Position(player.getPosition()));
+                            this.DrawTile = player.getPosition();
+                            this.currentState = State.WAITINGFORLOOT;
                         }
-                    } else if (this.currentState == State.WalkTOPLAYERDEATH) {
-
-                        getWalking().walk(new Position(randomPlayer.getPosition()));
-                        DrawTile = randomPlayer.getPosition();
                     }
                 }
             }
+        } else if (this.currentState == State.WAITINGFORLOOT) {
+          super.log("Waiting for looteio!");
         }
+
+        return;
     }
 
     @Override
@@ -234,6 +234,7 @@ public class Main extends Script {
     public String[] temp;
     @Override
     public int onLoop () {
+        /*
         //Random
         Random rand = new Random();
         //check to see if players exist
@@ -277,24 +278,23 @@ public class Main extends Script {
                 }
             }
         }
+        */
 
-        /*
         try {
-           if (myPlayer().isVisible()) {
-               super.log("in is visible block");
-                this.bank();
+            if (myPlayer().isVisible()) {
+              super.log("about to loop!");
+              this.bank();
             }
         } catch(InterruptedException e) {
             log("got interrupted!");
         }
-        */
 
         return random(10, 30);
     }
 
     @Override
     public void onPaint (Graphics2D g){
-        Polygon p = DrawTile.getPolygon(bot);
+        Polygon p = this.DrawTile.getPolygon(bot);
         g.drawPolygon(p);
     }
 }
