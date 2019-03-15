@@ -157,52 +157,7 @@ public class Main extends Script {
     public String[] temp;
     @Override
     public int onLoop () {
-        /*
-        //Random
-        Random rand = new Random();
-        //check to see if players exist
-        if (getPlayers().getAll() != null) {
-            //get a list of all players because there are some
-            java.util.List<Player> p = getPlayers().getAll();
-            //get player size and select random one
-            int randomNum = rand.nextInt(((p.size() - 1) - 0) + 1) + 0;
-            //select the player
-            Player randomPlayer = p.get(randomNum);
-            //filter players to meet lootable
-            if (randomPlayer != null && randomPlayer.isAnimating() && randomPlayer.isHitBarVisible() && randomPlayer.isOnScreen()) {
-                //get player health
-                int playerhealth = randomPlayer.getHealthPercent();
-                //ID dead player who just died and get their name, coordinates, and health.
-                if (playerhealth == 0) {
-                    String name = randomPlayer.getName();
-                    String loc = randomPlayer.getPosition().toString();
-                    //log all as a test
-                    log(name + loc + playerhealth);
-
-                    getWalking().walk(new Position(randomPlayer.getPosition()));
-                    DrawTile = randomPlayer.getPosition();
-                    try {
-                        // to sleep 10 seconds
-                        Thread.sleep(58000);
-                    } catch (InterruptedException e) {
-                        // recommended because catching InterruptedException clears interrupt flag
-                        Thread.currentThread().interrupt();
-                        // you probably want to quit if the thread is interrupted
-                    }
-
-                    // NULL POINTER
-                    temp = getAll.toString().split("/n");
-                    for (int i = 0; i < temp.length; i++) {
-                        if (groundItems.closest(temp[i]) != null) {
-                            GroundItem loot = groundItems.closest(temp[i]);
-                            loot.interact("Take");
-                        }
-                    }
-                }
-            }
-        }
-        */
-
+        
         try {
             if (myPlayer().isVisible()) {
               super.log("about to loop!");
