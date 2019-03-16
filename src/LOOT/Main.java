@@ -1,5 +1,20 @@
 package LOOT;
 
+/*
+
+just follow that and stop trying to make keylogger noob LOLOLOL that was years and years ago
+back when i coded in VB :P
+
+well it's clear u don't know anything bout coding
+
+stop trying to do states whats wrong with states :c
+
+just garbage
+ */
+
+
+
+import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Players;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.map.Position;
@@ -13,17 +28,18 @@ import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @ScriptManifest(name = "GE LOOTER", author = "Pat and Mac", version = 1.0, info = "Goes to GE and Loots from Dead players", logo = "")
 public class Main extends Script {
     private State currentState = State.REVIVED;
     public static Area getLocationArea = Banks.GRAND_EXCHANGE;
     private final Area bankingArea = new Area(3225, 3212, 3218, 3225);
-    private final Area lootingArea = new Area(3162, 3486, 3167, 3481);
     private Position DrawTile = new Position(1, 2, 3);
     private final String varrockTeleport = "Varrock teleport";
-    private int PriceID;
     private ConditionalSleep whileTravelingToBank = new ConditionalSleep((int) (Math.random() * 1000.0D + 2000.0D)) {
         @Override
         public boolean condition() throws InterruptedException {
@@ -31,11 +47,13 @@ public class Main extends Script {
         }
     };
 
+
+
     private void bank() throws InterruptedException {
         super.log("At beginning of bank loop. currentState: " + this.currentState);
         /* state 1: revived from death */
         if (this.currentState == State.REVIVED) {
-            super.log("Executing Revived");
+            log("Executing Revived");
 
             // if with walking distance of bank, walk to bank
             boolean inBankingArea = !bankingArea.contains(myPosition());
@@ -92,7 +110,7 @@ public class Main extends Script {
             boolean atGrandeExchangio = Banks.GRAND_EXCHANGE.contains(myPosition());
             super.log("atGrandeExchangio: " + atGrandeExchangio);
             if (!atGrandeExchangio) {
-                boolean walkingTowardsGE = getWalking().webWalk(new Position[]{getLocationArea.getRandomPosition()});
+                boolean walkingTowardsGE = getWalking().webWalk(getLocationArea);
                 super.log("walkingTowardsGE: " + walkingTowardsGE);
                 if (walkingTowardsGE) {
                     this.currentState = State.TRAVELINGTOGRANDEXCHANGE;
@@ -111,11 +129,7 @@ public class Main extends Script {
             }
         } else if (this.currentState == State.WAITFORPLAYERDEATH) {
             super.log("entered Wait for Player death block");
-            //get a list of all players because there are some
-            java.util.List<Player> players = getPlayers().getAll();
-            //check to see if players exist
-            if (players != null) {
-                for(Player player : players) {
+            for(Player player : getPlayers().getAll()) {
                     Thread.sleep(100);
                     super.log("examining player: " + player.getName());
                     //filter players to meet lootable
@@ -133,46 +147,76 @@ public class Main extends Script {
                             this.DrawTile = player.getPosition();
                             this.currentState = State.WAITINGFORLOOT;
                         }
+
                     }
                 }
             }
-        } else if (this.currentState == State.WAITINGFORLOOT) {
-          super.log("Waiting for looteio!");
+
+        else if (this.currentState == State.WAITINGFORLOOT) {
+           //using this state to test
+            log("Waiting for looteio!");
+            int totalInventoryValue = 0;
+            for (Item item : getInventory().getItems()){
+                if(item != null)
+                    totalInventoryValue += getPrice(item.getName()) * item.getAmount();
+            }
+            log("the total loot  is  " + (totalInventoryValue));
+            int openslots = (getInventory().getEmptySlotCount());
+            log("you have " + (28 - openslots) + " items");
+            this.currentState = State.ATVARROCK;
         }
 
-        return;
+
     }
+
+    private Integer getPrice(String itemName) {
+        Optional<String> itemPrice = ItemLookup.get(itemName, Property.SELL_AVERAGE);
+
+
+        return itemPrice.map(Integer::valueOf).orElse(0);
+    }
+
+
 
     @Override
     public void onStart() {
-
+       // currentState = State.WAITINGFORLOOT;
     }
-
     @Override
     public void onExit () {
 
     }
 
-    public java.util.List<GroundItem> getAll;
-    public String[] temp;
+
     @Override
     public int onLoop () {
-        
-        try {
-            if (myPlayer().isVisible()) {
-              super.log("about to loop!");
-              this.bank();
+
+
+           try {
+                if (myPlayer().isVisible()) {
+                    super.log("about to loop!");
+                    this.bank();
+                }
+            } catch (InterruptedException e) {
+                log("got interrupted!");
             }
-        } catch(InterruptedException e) {
-            log("got interrupted!");
+
+
+
+            return random(10, 30);
+
         }
 
-        return random(10, 30);
-    }
 
     @Override
-    public void onPaint (Graphics2D g){
+    public void onPaint (Graphics2D g) {
         Polygon p = this.DrawTile.getPolygon(bot);
         g.drawPolygon(p);
-    }
-}
+
+        }
+      }
+
+
+
+
+
