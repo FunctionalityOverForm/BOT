@@ -14,13 +14,16 @@ just garbage
 
 
 
+
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Players;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.map.Position;
 import org.osbot.rs07.api.model.Player;
+import org.osbot.rs07.event.WalkingEvent;
 import org.osbot.rs07.event.WebWalkEvent;
 import org.osbot.rs07.api.map.constants.Banks;
+import org.osbot.rs07.input.mouse.MainScreenTileDestination;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.api.model.*;
 import org.osbot.rs07.script.ScriptManifest;
@@ -124,37 +127,49 @@ public class Main extends Script {
 
             boolean atGrandeExchangio = Banks.GRAND_EXCHANGE.contains(myPosition());
             super.log("atGrandeExchangio2: " + atGrandeExchangio);
-            if(atGrandeExchangio){
-              this.currentState = State.WAITFORPLAYERDEATH;
+            Position pos = new Position(3161, 3502, 0);
+            getMouse().click(new MainScreenTileDestination(getBot(), pos));
+            Thread.sleep(1000);
+            if (atGrandeExchangio) {
+                this.currentState = State.WAITFORPLAYERDEATH;
             }
         } else if (this.currentState == State.WAITFORPLAYERDEATH) {
             super.log("entered Wait for Player death block");
-            for(Player player : getPlayers().getAll()) {
-                    Thread.sleep(100);
-                    super.log("examining player: " + player.getName());
-                    //filter players to meet lootable
-                    if (player != null && player.isAnimating()
-                            && player.isHitBarVisible() && player.isOnScreen()) {
-                        //get player health
-                        int playerhealth = player.getHealthPercent();
-                        //ID dead player who just died and get their name, coordinates, and health.
-                        if (playerhealth == 0) {
-                            String name = player.getName();
-                            String loc = player.getPosition().toString();
-                            //log all as a test
-                            super.log("found dead player" + name + loc + playerhealth);
-                            getWalking().walk(new Position(player.getPosition()));
-                            this.DrawTile = player.getPosition();
-                            this.currentState = State.WAITINGFORLOOT;
-                        }
-
+            Position pos1 = new Position(3164, 3474, 0);
+            WalkingEvent event = new WalkingEvent(pos1);
+            event.setMinDistanceThreshold(0);
+            execute(event);
+            for (Player player : getPlayers().getAll()) {
+                Thread.sleep(100);
+                super.log("examining player: " + player.getName());
+                //filter players to meet lootable
+                if (player != null && player.isAnimating()
+                        && player.isHitBarVisible() && player.isOnScreen()) {
+                    //get player health
+                    int playerhealth = player.getHealthPercent();
+                    //ID dead player who just died and get their name, coordinates, and health.
+                    if (playerhealth == 0) {
+                        String name = player.getName();
+                        String loc = player.getPosition().toString();
+                        //log all as a test
+                        super.log("found dead player" + name + loc + playerhealth);
+                        getWalking().walk(new Position(player.getPosition()));
+                        this.DrawTile = player.getPosition();
+                        this.currentState = State.WAITINGFORLOOT;
                     }
                 }
             }
-
-        else if (this.currentState == State.WAITINGFORLOOT) {
-           //using this state to test
+        } else if (this.currentState == State.WAITINGFORLOOT) {
+            //using this state to test
             log("Waiting for looteio!");
+            for (GroundItem itemonground : groundItems.getAll()) {
+                if (itemonground != null && itemonground.exists() && itemonground.getGridX() == myPlayer().getGridX()
+                        && itemonground.getGridY() == myPlayer().getGridY()) {
+                    itemonground.interact("Take");
+                    this.currentState = State.CHECKINGLOOT;
+                }
+            }
+        } else if (this.currentState == State.CHECKINGLOOT) {
             int totalInventoryValue = 0;
             for (Item item : getInventory().getItems()){
                 if(item != null)
@@ -163,16 +178,21 @@ public class Main extends Script {
             log("the total loot  is  " + (totalInventoryValue));
             int openslots = (getInventory().getEmptySlotCount());
             log("you have " + (28 - openslots) + " items");
-            this.currentState = State.ATVARROCK;
+            if (totalInventoryValue >= 6000 || openslots <= 10) {
+                log("Value high, or inv full banking");
+                getWalking().webWalk(getLocationArea);
+                getBank().open();
+                getBank().depositAll();
+                getBank().close();
+
+        } else {
+                this.currentState = State.WAITFORPLAYERDEATH;
         }
-
-
-    }
+        }
+        }
 
     private Integer getPrice(String itemName) {
         Optional<String> itemPrice = ItemLookup.get(itemName, Property.SELL_AVERAGE);
-
-
         return itemPrice.map(Integer::valueOf).orElse(0);
     }
 
@@ -180,7 +200,7 @@ public class Main extends Script {
 
     @Override
     public void onStart() {
-       // currentState = State.WAITINGFORLOOT;
+        this.currentState = State.WAITINGFORLOOT;
     }
     @Override
     public void onExit () {
