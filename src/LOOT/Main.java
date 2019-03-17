@@ -1,40 +1,17 @@
 package LOOT;
 
-/*
-
-just follow that and stop trying to make keylogger noob LOLOLOL that was years and years ago
-back when i coded in VB :P
-
-well it's clear u don't know anything bout coding
-
-stop trying to do states whats wrong with states :c
-
-just garbage
- */
-
-
-
-
-import org.osbot.rs07.api.Inventory;
-import org.osbot.rs07.api.Players;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.map.Position;
 import org.osbot.rs07.api.model.Player;
 import org.osbot.rs07.event.WalkingEvent;
-import org.osbot.rs07.event.WebWalkEvent;
 import org.osbot.rs07.api.map.constants.Banks;
 import org.osbot.rs07.input.mouse.MainScreenTileDestination;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.api.model.*;
 import org.osbot.rs07.script.ScriptManifest;
 import org.osbot.rs07.utility.ConditionalSleep;
-
 import java.awt.*;
-import java.io.IOException;
 import java.util.Optional;
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 
 @ScriptManifest(name = "GE LOOTER", author = "Pat and Mac", version = 1.0, info = "Goes to GE and Loots from Dead players", logo = "")
 public class Main extends Script {
@@ -49,9 +26,6 @@ public class Main extends Script {
             return bankingArea.contains(myPosition());
         }
     };
-
-
-
     private void bank() throws InterruptedException {
         super.log("At beginning of bank loop. currentState: " + this.currentState);
         /* state 1: revived from death */
@@ -73,7 +47,6 @@ public class Main extends Script {
         } else if (this.currentState == State.TRAVELINGTOBANKCHEST) {
             super.log("entered Traveling To Bank Chest");
             this.whileTravelingToBank.sleep();
-
             if (bankingArea.contains(myPosition())) {
                 this.currentState = State.ATBANKCHEST;
             }
@@ -84,18 +57,19 @@ public class Main extends Script {
                     this.currentState = State.ATBANKPROMPT;
                 }
             }
+            //state working
         } else if (this.currentState == State.ATBANKPROMPT) {
             //check if the bank contains teleport
             if (getBank().contains(varrockTeleport)) {
                 boolean withdrawSucceeded = getBank().withdraw(varrockTeleport, 1);
                 if (withdrawSucceeded) {
                     boolean bankClosed = getBank().close();
-
                     if (bankClosed) {
                         this.currentState = State.HASTELEPORT;
                     }
                 }
             }
+            //state working
         } else if (this.currentState == State.HASTELEPORT) {
             //check inventory for teleport
             if (inventory.contains(varrockTeleport)) {
@@ -109,6 +83,7 @@ public class Main extends Script {
                     }
                 }
             }
+            //state working
         } else if (this.currentState == State.ATVARROCK) {
             boolean atGrandeExchangio = Banks.GRAND_EXCHANGE.contains(myPosition());
             super.log("atGrandeExchangio: " + atGrandeExchangio);
@@ -119,6 +94,7 @@ public class Main extends Script {
                     this.currentState = State.TRAVELINGTOGRANDEXCHANGE;
                 }
             }
+            //state working
         } else if (this.currentState == State.TRAVELINGTOGRANDEXCHANGE) {
             super.log("entered Traveling to GE Block");
             if (getSettings().getRunEnergy() >= 10) {
@@ -133,6 +109,7 @@ public class Main extends Script {
             if (atGrandeExchangio) {
                 this.currentState = State.WAITFORPLAYERDEATH;
             }
+            //state working
         } else if (this.currentState == State.WAITFORPLAYERDEATH) {
             super.log("entered Wait for Player death block");
             Position pos1 = new Position(3164, 3474, 0);
@@ -140,7 +117,7 @@ public class Main extends Script {
             event.setMinDistanceThreshold(0);
             execute(event);
             for (Player player : getPlayers().getAll()) {
-                Thread.sleep(100);
+                Thread.sleep(60);
                 super.log("examining player: " + player.getName());
                 //filter players to meet lootable
                 if (player != null && player.isAnimating()
@@ -159,20 +136,37 @@ public class Main extends Script {
                     }
                 }
             }
+
         } else if (this.currentState == State.WAITINGFORLOOT) {
-            //using this state to test
+
             log("Waiting for looteio!");
             for (GroundItem itemonground : groundItems.getAll()) {
-                if (itemonground != null && itemonground.exists() && itemonground.getGridX() == myPlayer().getGridX()
+                if (itemonground != null && itemonground.exists()
+                        && itemonground.getGridX() == myPlayer().getGridX()
                         && itemonground.getGridY() == myPlayer().getGridY()) {
                     itemonground.interact("Take");
-                    this.currentState = State.CHECKINGLOOT;
+                    Thread.sleep(600);
+                    currentState = State.CHECKINGLOOT;
+
                 }
+                for (GroundItem itemnotonground : groundItems.getAll()) {
+                    if (itemnotonground.getGridX() != myPlayer().getGridX()
+                            && itemnotonground.getGridY() != myPlayer().getGridY()) {
+
+                      //  currentState = State.CHECKINGLOOT;
+                       // log("items looted");
+                    }
+                }
+
+
+
             }
+
+//state working
         } else if (this.currentState == State.CHECKINGLOOT) {
             int totalInventoryValue = 0;
-            for (Item item : getInventory().getItems()){
-                if(item != null)
+            for (Item item : getInventory().getItems()) {
+                if (item != null)
                     totalInventoryValue += getPrice(item.getName()) * item.getAmount();
             }
             log("the total loot  is  " + (totalInventoryValue));
@@ -184,12 +178,15 @@ public class Main extends Script {
                 getBank().open();
                 getBank().depositAll();
                 getBank().close();
-
-        } else {
                 this.currentState = State.WAITFORPLAYERDEATH;
+
+
+            } else {
+                this.currentState = State.WAITFORPLAYERDEATH;
+            }
         }
-        }
-        }
+    }
+
 
     private Integer getPrice(String itemName) {
         Optional<String> itemPrice = ItemLookup.get(itemName, Property.SELL_AVERAGE);
@@ -200,7 +197,7 @@ public class Main extends Script {
 
     @Override
     public void onStart() {
-        this.currentState = State.WAITINGFORLOOT;
+       // this.currentState = State.WAITINGFORLOOT;
     }
     @Override
     public void onExit () {
